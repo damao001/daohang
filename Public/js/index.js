@@ -122,7 +122,20 @@ var favObj = {
 			s.delFavIcon(id, type);
 			return false;
 		});
-
+		/* 编辑addIcon */
+		$(document).on('click', 'li[data_add], li[data_old]', function() {
+			var status = s.temp.mangerStatus;
+			if (!status) {
+				return true;
+			}
+			var old = $(this).attr('data_old') || false;
+			var add = $(this).attr('data_add') || false;
+			if (old > 0) {
+				return false;
+			}
+			s.editIcon(add);
+			return false;
+		});
 		/* 搜索 */
 		$('#b-btn, #q-btn').focus(function() {
 			var id = this.id;
@@ -149,6 +162,21 @@ var favObj = {
 			del = delArr[i];
 			$('[data_old="' + del + '"]').addClass('hide');
 		}
+	},
+	/* 编辑addIcon */
+	editIcon: function(id) {
+		var s = this;
+		if (typeof s.DATA.addIcon[id] == 'undefined') {
+			return false;
+		}
+		var param = s.DATA.addIcon[id];
+		$('#web_url').val(param['web_url']);
+		$('#web_name').val(param['web_name']);
+		$('#web_name2').val(param['web_name2']);
+		$('#web_color').val(param['web_color']);
+		//$('span.show-color').css('background-color', param['web_color']);
+		s.tool.dealBackgroupSHadow('span.show-color', param['web_color']);
+		$('#editModal').modal('show');
 	},
 	/* 隐藏删除 */
 	delFavIcon: function(id, _type) {
@@ -208,6 +236,98 @@ var favObj = {
 		$('ul.recommonds>li').remove();
 		$('ul.recommonds').append(icon_dom_arr);
 	},
+	/* 图标排序处理 */
+	dealSortIcon: function(_data, _type) {
+		var s = this;
+		var type = _type || 0;
+		var data = _data || s.DATA;
+		var $icon_arr = $('ul.recommonds>li');
+		var $icon, sort = 1, flag = false, id = null, old_sort = {};
+		s.temp.iconChange = false; // 统一取消变更状态
+		if (type == 2) {
+			$('ul.recommonds').html(s.temp.iconHtml);
+			s.DATA = s.temp.DATACache;
+			s.dataMgr('DATA' + s.DATA.version, s.temp.DATACache);
+			return;
+		}
+		$icon_arr.each(function() {
+			$icon = $(this);
+			flag = typeof $icon.attr('data_add') != 'undefined' && $icon.attr('data_add').length > 1 ? 'add' : ($icon.attr('data_old') > 0 ? 'old' : false);
+			if (flag == 'add') {
+				id = $icon.attr('data_add');
+				data.addIcon[id].sort = sort;
+			} else if (flag == 'old') {
+				id = $icon.attr('data_old');
+				data.oldSort[id] = sort;
+			}
+			++sort;
+		});
+		if (type == 1) return data;
+		s.dataMgr('DATA' + s.DATA.version, data, true); // sync
+	},
+	/* 重置默认图标 */
+	resetDefaultIcon: function() {
+		if (!confirm('确定要恢复所有默认图标和默认排序吗？')) return false;
+		var s = this;
+		s.DATA.oldDel = [];
+		$('[data_old].hide').removeClass('hide');
+		s.DATA.oldSort = {};
+		s.dataMgr('DATA' + s.DATA.version, s.DATA, true); // sync
+		location.reload();
+	},
+	/* 增加收藏图标 */
+	addIcon: function() {
+		var param = {
+			"web_url": $('#web_url').val(),
+			"web_name": $('#web_name').val(),
+			"web_name2": $('#web_name2').val(),
+			"web_color": $('#web_color').val()
+		}
+		//## 验证
+		var val;
+		for (var i in param) {
+			val = $.trim(param[i]);
+			switch (i) {
+				case "web_url":
+					//var cat = /^(https?|javascript)/;
+					var cat = /\w+\.\w+/;
+					if (!cat.test(val)) {
+						alert('网址内容不正确');
+						$('#web_url').focus();
+						return false;
+					}
+					break;
+			}
+		}
+		//console.log(param);
+		for (var i in param) {
+			if (param[i] == '') {
+				alert('每项不能为空');
+				return false;
+			}
+		}
+		var s = this, add_flag = true;
+		if (typeof s.DATA.addIcon[param['web_url']] != 'undefined') {
+			/*if (!confirm('该网址已添加，确定要覆盖吗？')) {
+				return false;
+			}*/
+			add_flag = false; // 编辑操作
+			$('li[data_add="' + param['web_url'] + '"]').remove();
+		} else {
+			param.sort = $('.recommonds .sigleRecommond').size() + 1; // 排序到最后
+		}
+		s.DATA.addIcon[param['web_url']] = param;
+		//if (add_flag) s.dataMgr('DATA' + s.DATA.version, s.DATA, true); // sync
+		$('#form-add')[0].reset();
+		s.tool.dealNewIcon(param, 1);
+		// 重置
+		//s.dealBandSortable(s.temp.sortableClass, true);
+		sortable('.' + s.temp.sortableClass);
+		$('#editModal').modal('hide');
+		// 触发cchange状态
+		s.temp.iconChange = true;
+		$('#cancel-btn').addClass('act');
+	},
 	// 拖拽事件处理
 	dealBandSortable: function(className, _flag) {
 		var s = this;
@@ -226,7 +346,20 @@ var favObj = {
 		});
 		s.temp.sortableInt = true;
 	},
-
+	/* 工具函数 */
+	tool: {
+		// 插入网页
+		dealNewIcon: function(param, _type) {
+			var type = _type || 0;
+			var dom = $('div#tpl-box>li.sigleRecommond').clone().attr('data_add', param['web_url']);
+			$('span[add_del]', dom).attr('add_del', param['web_url']);//.removeClass('hide');
+			type == 1 && $('span[add_del]', dom).removeClass('hide');
+			$('a.singleLink', dom).attr('href', param['web_url']).attr('title', param['web_name']);
+			$('span.icon-box', dom).text(param['web_name2']); //.css('background-color', param['web_color']);
+			this.dealBackgroupSHadow('span.icon-box', param['web_color'], dom);
+			$('span.text-links', dom).text(param['web_name']);
+			$('ul.recommonds').append(dom);
+		},
 		// 阴影背景色 处理
 		dealBackgroupSHadow: function(selector, color, _dom) {
 			var dom = _dom || document;
@@ -276,7 +409,45 @@ var favObj = {
 			}
 		},
 	},
-
+	/* 数据存储管理 */
+	dataMgr: function(_name, data, _sync_flag) { // _data = null
+		var s = this;
+		//var data = _data || null;
+		var name = _name || null;
+		var sync_flag = _sync_flag || false;
+		if (_name == null) {
+			return false;
+		}
+		if (typeof data == 'undefined') {
+			var item = localStorage.getItem(name);
+			return JSON.parse(item) || {};
+		} else {
+			var itemStr = JSON.stringify(data);
+			localStorage.setItem(name, itemStr);
+			if (sync_flag && user_data != null) {
+				$.post('index.php?m=Damalu&c=Index&a=doSync', {"data": encodeURIComponent(itemStr), "token": user_data.user_info.token}, function(data) {
+					if (typeof data.error != 'undefined') {
+						//s.showModal('tips', data.error);
+						if (typeof data.code != 'undefined') {
+							s.showModal('tips', data.error);
+							setTimeout(function() {location.reload();}, 3000);
+						}
+						++s.temp.sync_error_total;
+						s.showModal('tips', data.error + " [次数：" + s.temp.sync_error_total + "]");
+						return false;
+					} else {
+						s.showModal('tips', data.msg);
+						setTimeout(function() {
+							s.showModal('hide');
+						}, 500);
+						s.temp.sync_error_total = 0;
+						user_data.user_info.token = data.token;
+					}
+				}, 'json');
+			}
+			//console.log(name + ' save !');
+		}
+	},
 	/* 提示框 */
 	showModal: function(_title, _content) {
 		var s = this;

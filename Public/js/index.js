@@ -144,7 +144,7 @@ var favObj = {
 			var id = this.id;
 			var urlArr = {
 				'b-btn': '//www.baidu.com/s',
-				'q-btn': '//g.kerushen.com/search'
+				'q-btn': 'http://g.kerushen.com/search'
 			}
 			$('#search-form').attr('action', urlArr[id]);
 		});

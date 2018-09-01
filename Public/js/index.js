@@ -28,12 +28,12 @@ var favObj = {
 		}
 	},
 	/* 启动 */
-	init: function() {
+	/*init: function() {
 		var s = this;
 		s.band();
 		if (user_data != null) s.userManger('sync_init');
 		s.preprocess();
-	},
+	},*/
 	/* 数据处理 */
 	dataDeal: function () {
 		var s = this;

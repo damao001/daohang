@@ -276,45 +276,7 @@ var favObj = {
 			}
 		},
 	},
-	/* 数据存储管理 */
-	dataMgr: function(_name, data, _sync_flag) { // _data = null
-		var s = this;
-		//var data = _data || null;
-		var name = _name || null;
-		var sync_flag = _sync_flag || false;
-		if (_name == null) {
-			return false;
-		}
-		if (typeof data == 'undefined') {
-			var item = localStorage.getItem(name);
-			return JSON.parse(item) || {};
-		} else {
-			var itemStr = JSON.stringify(data);
-			localStorage.setItem(name, itemStr);
-			if (sync_flag && user_data != null) {
-				$.post('index.php?m=Damalu&c=Index&a=doSync', {"data": encodeURIComponent(itemStr), "token": user_data.user_info.token}, function(data) {
-					if (typeof data.error != 'undefined') {
-						//s.showModal('tips', data.error);
-						if (typeof data.code != 'undefined') {
-							s.showModal('tips', data.error);
-							setTimeout(function() {location.reload();}, 3000);
-						}
-						++s.temp.sync_error_total;
-						s.showModal('tips', data.error + " [次数：" + s.temp.sync_error_total + "]");
-						return false;
-					} else {
-						s.showModal('tips', data.msg);
-						setTimeout(function() {
-							s.showModal('hide');
-						}, 500);
-						s.temp.sync_error_total = 0;
-						user_data.user_info.token = data.token;
-					}
-				}, 'json');
-			}
-			//console.log(name + ' save !');
-		}
-	},
+
 	/* 提示框 */
 	showModal: function(_title, _content) {
 		var s = this;

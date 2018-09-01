@@ -143,8 +143,8 @@ var favObj = {
 		$('#b-btn, #q-btn').focus(function() {
 			var id = this.id;
 			var urlArr = {
-				'b-btn': '//www.baidu.com/s?',
-				'q-btn': '//g.kerushen.com/search?'
+				'b-btn': '//www.baidu.com/s',
+				'q-btn': '//g.kerushen.com/search'
 			}
 			$('#search-form').attr('action', urlArr[id]);
 		});
